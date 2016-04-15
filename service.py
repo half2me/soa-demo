@@ -17,6 +17,7 @@
     display these "docstrings" (basically header comments) for users of
     your code. Further info: http://www.python.org/dev/peps/pep-0257/
 """
+from contextlib import closing
 
 from flask import Flask, jsonify, abort, request
 from datetime import datetime
@@ -25,6 +26,28 @@ import cx_Oracle
 import requests
 
 app = Flask(__name__)
+
+
+@app.route('/persons.json')
+def list_persons():
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT PERSON_ID, NAME, ADDRESS FROM PERSONS")
+        results = [{'person_id': person_id, 'name': name, 'address': address} for person_id, name, address in cur]
+        return jsonify(persons=results)
+
+
+@app.route('/persons/<person_id>.json')
+def person_info(person_id):
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute('SELECT name, address, phone, income FROM PERSONS WHERE person_id = :id', id=person_id)
+        result = cur.fetchone()
+        if result is None:
+            abort(404)
+        else:
+            return jsonify(name=result[0], address=result[1], phone=result[2], income=result[3])
+
 
 @app.route('/szemelyek.json')
 def list_people():
@@ -64,7 +87,7 @@ def show_person(szemelyi_szam):
         cur = conn.cursor()
         try:
             cur.execute('SELECT nev FROM oktatas.szemelyek WHERE szemelyi_szam = :sz',
-                    sz=szemelyi_szam)
+                        sz=szemelyi_szam)
             # fetchone() returns a single row if there's one, otherwise None
             result = cur.fetchone()
             # in Python '==' compares by value, 'is' compares by reference
@@ -81,12 +104,12 @@ def show_person(szemelyi_szam):
                     # the person was born based on szemelyi_szam
                     born = datetime.strptime(szemelyi_szam[1:7], '%y%m%d')
                     params = {
-                            'action': 'query',
-                            # 2012-04-01 -> "April 01" -> "April 1"
-                            'titles': born.strftime('%B %d').replace('0', ''),
-                            'prop': 'extlinks',
-                            'format': 'json',
-                            }
+                        'action': 'query',
+                        # 2012-04-01 -> "April 01" -> "April 1"
+                        'titles': born.strftime('%B %d').replace('0', ''),
+                        'prop': 'extlinks',
+                        'format': 'json',
+                    }
                     # API docs: http://www.mediawiki.org/wiki/API:Tutorial
                     # Example for 1st April:
                     # https://en.wikipedia.org/w/api.php?action=query&format=json&prop=extlinks&titles=April%201
@@ -96,7 +119,7 @@ def show_person(szemelyi_szam):
                             for href in link.itervalues():
                                 links.append(href)
                 except:
-                    pass # necessary if a clause would be empty in Python
+                    pass  # necessary if a clause would be empty in Python
 
                 # result set rows can be indexed too
                 return jsonify(nev=result[0], links=links)
@@ -104,6 +127,7 @@ def show_person(szemelyi_szam):
             cur.close()
     finally:
         conn.close()
+
 
 @app.route('/datetest.json')
 def date_test():
@@ -114,10 +138,10 @@ def date_test():
             # http://www.oracle.com/technetwork/articles/dsl/prez-python-timesanddates-093014.html
             # https://docs.python.org/2/library/datetime.html
             # it's casted automatically to datetime
-            cur.execute('SELECT datum, usd FROM oktatas.mnb_deviza where id < 10')
+            cur.execute('SELECT datum, usd FROM oktatas.mnb_deviza WHERE id < 10')
             results = []
             for datum, usd in cur:
-                results.append({'datum': datum, 'datum_iso' : datum.isoformat(), 'usd': usd})
+                results.append({'datum': datum, 'datum_iso': datum.isoformat(), 'usd': usd})
             return jsonify(arfolyamok=results)
         finally:
             cur.close()
@@ -142,5 +166,6 @@ def get_db():
 
 if __name__ == "__main__":
     import os
+
     os.environ['NLS_LANG'] = '.UTF8'
     app.run(debug=True, port=os.getuid() + 10000)
