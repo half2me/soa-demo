@@ -2,20 +2,7 @@
 
 """
     Software Laboratory 5
-    SOA service demo
-
-    This sample service was created for the purposes of demonstrating some
-    of the functionality you can achieve by combining the power of three
-    Python libraries: cx_Oracle, Flask, and Requests.
-
-    It does not intend to be perfect Python code -- in some places, perfection
-    was traded for simplicity, some of these are marked in comments.
-
-    This comment is a so-called docstring, all Python modules and
-    functions/methods should have one. Three " or ' characters make it
-    possible for multiline strings, and interactive Python environments
-    display these "docstrings" (basically header comments) for users of
-    your code. Further info: http://www.python.org/dev/peps/pep-0257/
+    23-SZORAK
 """
 from contextlib import closing
 
@@ -31,22 +18,44 @@ app = Flask(__name__)
 @app.route('/persons.json')
 def list_persons():
     with get_db() as conn:
-        cur = conn.cursor()
-        cur.execute("SELECT PERSON_ID, NAME, ADDRESS FROM PERSONS")
-        results = [{'person_id': person_id, 'name': name, 'address': address} for person_id, name, address in cur]
-        return jsonify(persons=results)
+        with closing(conn.cursor()) as cur:
+            cur.execute("SELECT PERSON_ID, NAME, ADDRESS FROM PERSONS")
+            results = [{
+                           'person_id': person_id,
+                           'name': name,
+                           'address': address
+                       } for person_id, name, address in cur]
+            return jsonify(persons=results)
 
 
 @app.route('/persons/<person_id>.json')
 def person_info(person_id):
     with get_db() as conn:
-        cur = conn.cursor()
-        cur.execute('SELECT name, address, phone, income FROM PERSONS WHERE person_id = :id', id=person_id)
-        result = cur.fetchone()
-        if result is None:
-            abort(404)
-        else:
-            return jsonify(name=result[0], address=result[1], phone=result[2], income=result[3])
+        with closing(conn.cursor()) as cur:
+            cur.execute("SELECT name, REGEXP_REPLACE(ADDRESS, 'Bp*', 'Budapest'), phone, income FROM PERSONS WHERE person_id = :id", id=person_id)
+            result = cur.fetchone()
+            if result is None:
+                abort(404)
+            else:
+                params = {
+                    'format': "json",
+                    'country': "Hungary",
+                    'city': result[1].split(',')[0].split('.')[0]
+                }
+                r = requests.get("http://nominatim.openstreetmap.org/search", params=params)
+                lat = None
+                lon = None
+                if r.json():
+                    lat = r.json()[0]['lat']
+                    lon = r.json()[0]['lon']
+                return jsonify(
+                    name=result[0],
+                    address=result[1],
+                    phone=result[2],
+                    income=result[3],
+                    Latitude=lat,
+                    Longitude=lon,
+                )
 
 
 @app.route('/szemelyek.json')
