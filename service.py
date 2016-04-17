@@ -4,6 +4,7 @@
     Software Laboratory 5
     23-SZORAK
 """
+import csv
 from contextlib import closing
 
 from flask import Flask, jsonify, abort, request
@@ -11,12 +12,26 @@ from datetime import datetime
 import json
 import cx_Oracle
 import requests
+import xml.etree.ElementTree as ET
 
 app = Flask(__name__)
 
 
-@app.route('/persons.json')
-def list_persons():
+def xmlify(persons):
+    root = ET.Element('persons')
+    for person in persons:
+        ET.SubElement(root, 'person', person)
+    # TODO: fix UnicodeDecode Error
+    return app.response_class(ET.dump(root), mimetype='application/xml')
+
+
+def csvify(persons):
+    # TODO: Create CSV writer
+    return app.response_class(None, mimetype='text/csv')
+
+
+@app.route('/persons<ext>')
+def list_persons(ext):
     with get_db() as conn:
         with closing(conn.cursor()) as cur:
             cur.execute("SELECT PERSON_ID, NAME, ADDRESS FROM PERSONS")
@@ -25,7 +40,24 @@ def list_persons():
                            'name': name,
                            'address': address
                        } for person_id, name, address in cur]
-            return jsonify(persons=results)
+            # Decide return type based on extension
+            if ext == '.json':
+                return jsonify(persons=results)
+            if ext == '.xml':
+                return xmlify(results)
+            if ext == '.csv':
+                return csvify(results)
+
+            # Decide return type based on Header
+            accept = request.headers.get('Accept')
+            if 'application/json' in accept:
+                return jsonify(persons=results)
+            if 'application/xml' in accept:
+                return xmlify(results)
+            if 'text/csv' in accept:
+                return csvify(results)
+            # if no matches, return error
+            abort(404)
 
 
 @app.route('/persons/<person_id>.json')
@@ -64,7 +96,7 @@ def search_address(address):
         with closing(conn.cursor()) as cur:
             cur.execute(
                 "SELECT PERSON_ID, NAME, ADDRESS FROM PERSONS WHERE LOWER(ADDRESS) LIKE :a"
-                , a= '%' + address.replace('%', '{%}').lower() + '%'
+                , a='%' + address.replace('%', '{%}').lower() + '%'
             )
             results = [{
                            'person_id': person_id,
@@ -80,7 +112,7 @@ def search_name(name):
         with closing(conn.cursor()) as cur:
             cur.execute(
                 "SELECT PERSON_ID, NAME, ADDRESS FROM PERSONS WHERE LOWER(NAME) LIKE :n"
-                , n= '%' + name.replace('%', '{%}').lower() + '%'
+                , n='%' + name.replace('%', '{%}').lower() + '%'
             )
             results = [{
                            'person_id': person_id,
