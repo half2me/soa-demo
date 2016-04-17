@@ -13,8 +13,12 @@
 <body>
     <script type="text/javascript">
         function populate_table(data) {
+            console.log("refresh table");
             var persons = data.persons;
             var table = $("#persons")[0];
+
+            // Empty out table
+            $(table).html("");
 
             $(persons).each(function() {
                 // Create new row and cells
@@ -22,26 +26,60 @@
                 var cell_person_id = row.insertCell(-1);
                 var cell_name = row.insertCell(-1);
                 var cell_address = row.insertCell(-1);
+                var cell_button = row.insertCell(-1);
 
                 $(cell_person_id).text($(this)[0].person_id);
                 $(cell_name).text($(this)[0].name);
                 $(cell_address).text($(this)[0].address);
+
+                var button = document.createElement("input");
+                button.setAttribute("type", "button");
+                button.setAttribute("value", "Details");
+                button.setAttribute("name", $(this)[0].person_id);
+                button.setAttribute("id", "person_details_" + $(this)[0].person_id)
+                cell_button.appendChild(button);
+                $(button).click(function() {
+                    $.ajax({
+                        url: "../persons/" + this.name + ".json",
+                        dataType: "json",
+                        success: function(data) {
+                            console.log(data);
+                            alert(
+                                    "Name: " + data.name + "\n"
+                                    + "Income: " + data.income + "\n"
+                                    + "Address: " + data.address + "\n"
+                                    + "Latitude: " + data.Latitude + "\n"
+                                    + "Longitude: " + data.Longitude + "\n"
+                            )
+                        }
+                    })
+                });
+            });
+        }
+
+        function refresh() {
+            $.ajax({
+                url: "../persons.json",
+                dataType: "json",
+                success: populate_table
             });
         }
 
         $(function() {
-                $.ajax({
-                    url: "../persons.json",
-                    dataType: "json",
-                    success: populate_table
-                });
-            });
+            refresh();
+        });
+
+        window.setInterval(function(){
+            refresh();
+        }, 5 * 60 * 1000);
+
     </script>
     <table id="persons">
         <tr>
-            <th>person_id</th>
-            <th>name</th>
-            <th>address</th>
+            <th>Person_id</th>
+            <th>Name</th>
+            <th>Address</th>
+            <th>Details</th>
         </tr>
     </table>
 </body>
