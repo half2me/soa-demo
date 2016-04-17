@@ -32,7 +32,7 @@ def list_persons():
 def person_info(person_id):
     with get_db() as conn:
         with closing(conn.cursor()) as cur:
-            cur.execute("SELECT name, REGEXP_REPLACE(ADDRESS, 'Bp*', 'Budapest'), phone, income FROM PERSONS WHERE person_id = :id", id=person_id)
+            cur.execute("SELECT name, address, phone, income FROM PERSONS WHERE person_id = :id", id=person_id)
             result = cur.fetchone()
             if result is None:
                 abort(404)
@@ -40,7 +40,7 @@ def person_info(person_id):
                 params = {
                     'format': "json",
                     'country': "Hungary",
-                    'city': result[1].split(',')[0].split('.')[0]
+                    'city': result[1].split(',')[0].split('.')[0].replace('Bp', "Budapest")
                 }
                 r = requests.get("http://nominatim.openstreetmap.org/search", params=params)
                 lat = None
