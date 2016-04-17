@@ -168,6 +168,22 @@ def search_name(name):
             return jsonify(persons=results)
 
 
+@app.route('/persons/<person_id>', methods=['DELETE'])
+def person_delete(person_id):
+    """
+    Delete a person
+    :param person_id: person_id
+    :return: 200 OK or 404 not found
+    """
+    with get_db() as conn:
+        with closing(conn.cursor()) as cur:
+            cur.execute("DELETE FROM PERSONS WHERE PERSON_ID = :id", id=person_id)
+            if cur.rowcount() > 0:
+                return '', 200
+            else:
+                abort(404)
+
+
 def get_db():
     """Connects to the RDBMS and returns a connection object"""
     # when used with a `file` object, `with` ensures it gets closed
