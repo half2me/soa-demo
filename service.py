@@ -17,15 +17,15 @@ import xml.etree.ElementTree as ET
 app = Flask(__name__)
 
 
-def xmlify(persons):
+def xmlify(data):
     root = ET.Element('persons')
-    for person_id, name, address in persons:
+    for person in data:
         ET.SubElement(root, 'person', {
-            'person_id': str(person_id),
-            'name': name,
-            'address': address
+            'person_id': str(person['person_id']),
+            'name': person['name'],
+            'address': person['address']
         })
-    return app.response_class(ET.dump(root), mimetype='application/xml')
+    return app.response_class(ET.tostring(root), mimetype='application/xml')
 
 
 def csvify(persons):
