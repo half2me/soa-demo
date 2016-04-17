@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Persons</title>
+    <script
+            src="https://code.jquery.com/jquery-1.12.3.min.js"
+            type="text/javascript"
+            integrity="sha256-aaODHAgvwQW1bFOGXMeX+pC4PZIPsvn2h1sArYOhgXQ="
+            crossorigin="anonymous">
+    </script>
+</head>
+<body>
+    <script type="text/javascript">
+        function populate_table(data) {
+            var persons = data.persons;
+            var table = $("#persons")[0];
+
+            $(persons).each(function() {
+                // Create new row and cells
+                var row = table.insertRow(-1);
+                var cell_person_id = row.insertCell(-1);
+                var cell_name = row.insertCell(-1);
+                var cell_address = row.insertCell(-1);
+
+                $(cell_person_id).text($(this)[0].person_id);
+                $(cell_name).text($(this)[0].name);
+                $(cell_address).text($(this)[0].address);
+            });
+        }
+
+        $(function() {
+                $.ajax({
+                    url: "../persons.json",
+                    dataType: "json",
+                    success: populate_table
+                });
+            });
+    </script>
+    <table id="persons">
+        <tr>
+            <th>person_id</th>
+            <th>name</th>
+            <th>address</th>
+        </tr>
+    </table>
+</body>
+</html>
