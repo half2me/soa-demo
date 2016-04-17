@@ -58,6 +58,38 @@ def person_info(person_id):
                 )
 
 
+@app.route('/persons/by-address/<address>.json')
+def search_address(address):
+    with get_db() as conn:
+        with closing(conn.cursor()) as cur:
+            cur.execute(
+                "SELECT PERSON_ID, NAME, ADDRESS FROM PERSONS WHERE LOWER(ADDRESS) LIKE :a"
+                , a= '%' + address.replace('%', '{%}').lower() + '%'
+            )
+            results = [{
+                           'person_id': person_id,
+                           'name': name,
+                           'address': address
+                       } for person_id, name, address in cur]
+            return jsonify(persons=results)
+
+
+@app.route('/persons/by-name/<name>.json')
+def search_name(name):
+    with get_db() as conn:
+        with closing(conn.cursor()) as cur:
+            cur.execute(
+                "SELECT PERSON_ID, NAME, ADDRESS FROM PERSONS WHERE LOWER(NAME) LIKE :n"
+                , n= '%' + name.replace('%', '{%}').lower() + '%'
+            )
+            results = [{
+                           'person_id': person_id,
+                           'name': name,
+                           'address': address
+                       } for person_id, name, address in cur]
+            return jsonify(persons=results)
+
+
 @app.route('/szemelyek.json')
 def list_people():
     """Lists the first 50 persons in the database"""
