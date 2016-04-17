@@ -19,9 +19,12 @@ app = Flask(__name__)
 
 def xmlify(persons):
     root = ET.Element('persons')
-    for person in persons:
-        ET.SubElement(root, 'person', person)
-    # TODO: fix UnicodeDecode Error
+    for person_id, name, address in persons:
+        ET.SubElement(root, 'person', {
+            'person_id': str(person_id),
+            'name': name,
+            'address': address
+        })
     return app.response_class(ET.dump(root), mimetype='application/xml')
 
 
@@ -37,8 +40,8 @@ def list_persons(ext):
             cur.execute("SELECT PERSON_ID, NAME, ADDRESS FROM PERSONS")
             results = [{
                            'person_id': person_id,
-                           'name': name,
-                           'address': address
+                           'name': name.decode('utf-8'),
+                           'address': address.decode('utf-8')
                        } for person_id, name, address in cur]
             # Decide return type based on extension
             if ext == '.json':
