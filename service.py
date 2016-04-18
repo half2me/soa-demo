@@ -184,6 +184,56 @@ def person_delete(person_id):
                 abort(404)
 
 
+@app.route('/persons/<person_id>', methods=['PUT'])
+def person_update(person_id):
+    """
+    Update a person
+    :param person_id: person_id
+    :return: Flask response
+    """
+    if not request.json:
+        abort(400)
+    with get_db() as conn:
+        with closing(conn.cursor()) as cur:
+            cur.execute(
+                '''UPDATE PERSONS SET
+                name = :name,
+                address = :address,
+                phone = :phone,
+                income = :income
+                WHERE person_id = :id''',
+                name=request.json.get('name'),
+                address=request.json.get('address'),
+                phone=request.json.get('phone'),
+                person_id=request.json.get('person_id')
+            )
+            if cur.rowcount() > 0:
+                return '', 200
+            else:
+                abort(404)
+
+
+@app.route('/persons.json', methods=['POST'])
+def person_create():
+    """
+    Create a new person
+    :return: Flask response
+    """
+    if not request.json:
+        abort(400)
+    with get_db() as conn:
+        with closing(conn.cursor()) as cur:
+            id = cur.var("person_id")
+            cur.execute(
+                "INSERT INTO PERSONS (name, address, phone, income)VALUES (:name, :address, :phone, :income)",
+                name=request.json.get('name'),
+                address=request.json.get('address'),
+                phone=request.json.get('phone'),
+                income=request.json.get('income')
+            )
+            return jsonify(person_id=id.getValue())
+
+
 def get_db():
     """Connects to the RDBMS and returns a connection object"""
     # when used with a `file` object, `with` ensures it gets closed
