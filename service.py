@@ -9,7 +9,6 @@ import csv
 from contextlib import closing
 
 from flask import Flask, jsonify, abort, request
-from datetime import datetime
 import json
 import cx_Oracle
 import requests
@@ -67,10 +66,10 @@ def list_persons(ext):
         with closing(conn.cursor()) as cur:
             cur.execute("SELECT PERSON_ID, NAME, ADDRESS FROM PERSONS")
             results = [{
-                           'person_id': person_id,
-                           'name': name.decode('utf-8'),
-                           'address': address.decode('utf-8')
-                       } for person_id, name, address in cur]
+                'person_id': person_id,
+                'name': name.decode('utf-8'),
+                'address': address.decode('utf-8')
+            } for person_id, name, address in cur]
             # Decide return type based on extension
             if ext == '.json':
                 return jsonify(persons=results)
@@ -100,7 +99,10 @@ def person_info(person_id):
     """
     with get_db() as conn:
         with closing(conn.cursor()) as cur:
-            cur.execute("SELECT name, address, phone, income FROM PERSONS WHERE person_id = :id", id=person_id)
+            cur.execute(
+                '''SELECT name, address, phone, income
+                FROM PERSONS WHERE person_id = :id''',
+                id=person_id)
             result = cur.fetchone()
             if result is None:
                 abort(404)
@@ -140,10 +142,10 @@ def search_address(address):
                 , a='%' + address.replace('%', '{%}').lower() + '%'
             )
             results = [{
-                           'person_id': person_id,
-                           'name': name,
-                           'address': address
-                       } for person_id, name, address in cur]
+                'person_id': person_id,
+                'name': name,
+                'address': address
+            } for person_id, name, address in cur]
             return jsonify(persons=results)
 
 
@@ -161,10 +163,10 @@ def search_name(name):
                 , n='%' + name.replace('%', '{%}').lower() + '%'
             )
             results = [{
-                           'person_id': person_id,
-                           'name': name,
-                           'address': address
-                       } for person_id, name, address in cur]
+                'person_id': person_id,
+                'name': name,
+                'address': address
+            } for person_id, name, address in cur]
             return jsonify(persons=results)
 
 
@@ -225,7 +227,8 @@ def person_create():
         with closing(conn.cursor()) as cur:
             id = cur.var("person_id")
             cur.execute(
-                "INSERT INTO PERSONS (name, address, phone, income)VALUES (:name, :address, :phone, :income)",
+                '''INSERT INTO PERSONS (name, address, phone, income)
+                VALUES (:name, :address, :phone, :income)''',
                 name=request.json.get('name'),
                 address=request.json.get('address'),
                 phone=request.json.get('phone'),
